@@ -354,6 +354,9 @@ macos_space *AXLibActiveSpace(CFStringRef DisplayRef)
 
     CFStringRef SpaceRef;
     CGSSpaceID SpaceId = AXLibActiveSpaceIdentifier(DisplayRef, &SpaceRef);
+    if (SpaceId == 0)
+        return NULL;
+
     CGSSpaceType SpaceType = CGSSpaceGetType(CGSDefaultConnection, SpaceId);
 
     macos_space *Space = AXLibConstructSpace(SpaceRef, SpaceId, SpaceType);

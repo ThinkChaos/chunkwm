@@ -1387,9 +1387,10 @@ space_free:
 internal void
 RecreateVirtualSpaceRegionsForDisplay(CFStringRef DisplayRef)
 {
-    macos_space *ActiveSpace = AXLibActiveSpace(DisplayRef);
-    ASSERT(ActiveSpace);
-
+    CGSSpaceID ActiveSpaceId = AXLibActiveCGSSpaceID(DisplayRef);
+    if (ActiveSpaceId == 0)
+        return;
+    
     macos_space *Space, **List, **Spaces;
     List = Spaces = AXLibSpacesForDisplay(DisplayRef);
     ASSERT(Spaces);
@@ -1399,7 +1400,7 @@ RecreateVirtualSpaceRegionsForDisplay(CFStringRef DisplayRef)
         ASSERT(VirtualSpace);
 
         if (VirtualSpace->Tree) {
-            if (Space->Id == ActiveSpace->Id) {
+            if (Space->Id == ActiveSpaceId) {
                 //
                 // NOTE(koekeishiya): Update dimensions of the currently active desktop
                 // for the monitor that triggered a resolution change.
@@ -1420,7 +1421,6 @@ RecreateVirtualSpaceRegionsForDisplay(CFStringRef DisplayRef)
         AXLibDestroySpace(Space);
     }
 
-    AXLibDestroySpace(ActiveSpace);
     free(Spaces);
 }
 
