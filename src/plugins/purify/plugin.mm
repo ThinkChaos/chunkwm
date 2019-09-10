@@ -28,12 +28,12 @@ internal const char *PluginVersion = "0.1.0";
 internal chunkwm_api API;
 
 internal void
-ExtendedDockDisableWindowShadow(uint32_t WindowId)
+ExtendedDockSetWindowShadowEnabled(uint32_t WindowId, bool EnableShadow)
 {
     int SockFD;
     if (ConnectToDaemon(&SockFD, 5050)) {
         char Message[64];
-        sprintf(Message, "window_shadow_irreversible %d", WindowId);
+        sprintf(Message, "window_shadow %d %d", WindowId, EnableShadow);
         WriteToSocket(Message, SockFD);
     }
     CloseSocket(SockFD);
@@ -60,7 +60,10 @@ PLUGIN_MAIN_FUNC(PluginMain)
             macos_window **List = WindowList;
             macos_window *Window;
             while ((Window = *List++)) {
-                ExtendedDockDisableWindowShadow(Window->Id);
+                if (AXLibHasFlags(Window, Window_Float))
+                    continue;
+
+                ExtendedDockSetWindowShadowEnabled(Window->Id, false);
                 AXLibDestroyWindow(Window);
             }
 
@@ -69,7 +72,13 @@ PLUGIN_MAIN_FUNC(PluginMain)
         return true;
     } else if (StringsAreEqual(Node, "chunkwm_export_window_created")) {
         macos_window *Window = (macos_window *) Data;
-        ExtendedDockDisableWindowShadow(Window->Id);
+        ExtendedDockSetWindowShadowEnabled(Window->Id, false);
+        return true;
+    } else if (StringsAreEqual(Node, "Tiling_focused_window_float")) {
+        uint32_t WindowId = *(uint32_t *) Data;
+        uint32_t Status = *((uint32_t *) Data + 1);
+        if (Status) // Windows is floating
+            ExtendedDockSetWindowShadowEnabled(WindowId, true);
         return true;
     }
 
@@ -89,7 +98,7 @@ PLUGIN_BOOL_FUNC(PluginInit)
     int *WindowList = AXLibAllWindows(&Count);
     if (WindowList) {
         for (int Index = 0; Index < Count; ++Index) {
-            ExtendedDockDisableWindowShadow(WindowList[Index]);
+            ExtendedDockSetWindowShadowEnabled(WindowList[Index], false);
         }
         free(WindowList);
     }
