@@ -86,11 +86,32 @@ FuckingMacOSMonitorBoundsChangingBetweenPrimaryAndMainMonitor(AXUIElementRef Win
     }
 }
 
+internal inline bool
+IsFullScreen(AXUIElementRef WindowRef)
+{
+    if (AXLibIsWindowFullscreen(WindowRef))
+        return true;
+
+    CGSize Size = AXLibGetWindowSize(WindowRef);
+
+    CFStringRef DisplayRef = AXLibGetDisplayIdentifierForMainDisplay();
+    if (!DisplayRef)
+        return false;
+
+    CGRect DisplayBounds = AXLibGetDisplayBounds(DisplayRef);
+    CFRelease(DisplayRef);
+
+    // CGPoint Position = AXLibGetWindowPosition(WindowRef);
+    // printf("%gx%g @ (%g, %g)\n", Size.width, Size.height, Position.x, Position.y);
+
+    return Size.width == DisplayBounds.size.width && Size.height == DisplayBounds.size.height;
+}
+
 internal inline void
 UpdateWindow(AXUIElementRef WindowRef)
 {
     if (DrawBorder) {
-        if (AXLibIsWindowFullscreen(WindowRef)) {
+        if (IsFullScreen(WindowRef)) {
             if (Border) {
                 ClearBorderWindow(Border);
             }
@@ -189,7 +210,7 @@ NewWindowHandler(macos_space *Space)
         uint32_t WindowId = AXLibGetWindowID(WindowRef);
         if (WindowId) {
             if ((!AXLibSpaceHasWindow(Space->Id, WindowId)) ||
-                (Space->Type != kCGSSpaceUser)) {
+                (Space->Type != kCGSSpaceUser) || IsFullScreen(WindowRef)) {
                 if (Border) {
                     ClearBorderWindow(Border);
                 }
