@@ -107,11 +107,27 @@ IsFullScreen(AXUIElementRef WindowRef)
     return Size.width == DisplayBounds.size.width && Size.height == DisplayBounds.size.height;
 }
 
+internal inline bool
+IsKodi(AXUIElementRef WindowRef)
+{
+    NSString *Title = NULL;
+    AXError err = AXUIElementCopyAttributeValue(WindowRef, kAXTitleAttribute, (CFTypeRef *)&Title);
+    if (err != kAXErrorSuccess)
+        return false;
+
+    // printf("%s\n", [Title UTF8String]);
+
+    bool res = strncmp([Title UTF8String], "Kodi Media Center", 17) == 0;
+
+    CFRelease(Title);
+    return res;
+}
+
 internal inline void
 UpdateWindow(AXUIElementRef WindowRef)
 {
     if (DrawBorder) {
-        if (IsFullScreen(WindowRef)) {
+        if (IsFullScreen(WindowRef) || IsKodi(WindowRef)) {
             if (Border) {
                 ClearBorderWindow(Border);
             }
@@ -210,7 +226,7 @@ NewWindowHandler(macos_space *Space)
         uint32_t WindowId = AXLibGetWindowID(WindowRef);
         if (WindowId) {
             if ((!AXLibSpaceHasWindow(Space->Id, WindowId)) ||
-                (Space->Type != kCGSSpaceUser) || IsFullScreen(WindowRef)) {
+                (Space->Type != kCGSSpaceUser) || IsFullScreen(WindowRef) || IsKodi(WindowRef)) {
                 if (Border) {
                     ClearBorderWindow(Border);
                 }
